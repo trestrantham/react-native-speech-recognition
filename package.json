@@ -1,0 +1,17 @@
+{
+  "name": "react-native-speech-recognition",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trestrantham/react-native-speech-recognition.git"
+  },
+  "license": "MIT",
+  "keywords": ["react-native", "react-speech-recognition", "voice", "speech", "recognition"],
+  "main": "index.js",
+  "author": "Tres Trantham <tres@trestrantham.com>",
+  "homepage": "https://github.com/trestrantham/react-native-speech-recognition",
+  "description": "Speech recognition in React Native",
+  "peerDependencies": {
+    "react-native": "^0.38"
+  }
+}
