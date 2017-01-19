@@ -18,13 +18,20 @@ RCT_EXPORT_MODULE();
     return dispatch_get_main_queue();
 }
 
-RCT_REMAP_METHOD(listen, resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_REMAP_METHOD(listen, listen_resolver:(RCTPromiseResolveBlock)resolve listen_rejecter:(RCTPromiseRejectBlock)reject)
 {
   if (self.speechToTextManager == nil) {
     self.speechToTextManager = [[RNSRSpeechToText alloc] initWithEventDispatcher:self.bridge.eventDispatcher];
   }
 
   [self.speechToTextManager listenAndTranslate:resolve];
+}
+
+RCT_REMAP_METHOD(stop, stop_resolver:(RCTPromiseResolveBlock)resolve stop_rejecter:(RCTPromiseRejectBlock)reject)
+{
+  if (self.speechToTextManager != nil) {
+    [self.speechToTextManager stop:resolve];
+  }
 }
 
 @end

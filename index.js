@@ -6,6 +6,10 @@ class SpeechRecognition {
   listen() {
     return RNSpeechRecognition.listen();
   }
+
+  stop() {
+    return RNSpeechRecognition.stop();
+  }
 }
 
 module.exports = new SpeechRecognition();
