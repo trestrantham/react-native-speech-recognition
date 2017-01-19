@@ -1,5 +1,11 @@
 import { NativeModules } from 'react-native';
 
-const { RNSpeechRecognition as SpeechRecognition } = NativeModules;
+const { RNSpeechRecognition } = NativeModules;
 
-export default SpeechRecognition;
+class SpeechRecognition {
+  listen() {
+    return RNSpeechRecognition.listen();
+  }
+}
+
+module.exports = new SpeechRecognition();
