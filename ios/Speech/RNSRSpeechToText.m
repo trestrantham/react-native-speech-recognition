@@ -2,6 +2,7 @@
 #import "RNSRSpeechToText.h"
 
 #import <AVFoundation/AVFoundation.h>
+#import <Accelerate/Accelerate.h>
 #import <Speech/Speech.h>
 
 @interface RNSRSpeechToText() <SFSpeechRecognitionTaskDelegate,SFSpeechRecognizerDelegate>
@@ -52,7 +53,7 @@
     self.recognitionTask = nil;
   }
 
-  NSError *outError; 
+  NSError *outError;
 
   AVAudioSession *audioSession = [AVAudioSession sharedInstance];
   [audioSession setCategory:AVAudioSessionCategoryRecord error:&outError];
@@ -76,75 +77,82 @@
 
   self.recognitionTask = [self.speechRecognizer recognitionTaskWithRequest:self.recognitionRequest delegate:self];
 
+  double POWER_MIN = -25;
+  double POWER_MAX = -80;
+  double POWER_SCALE_FACTOR = (1 - 0) + 0; // (MAX - MIN) + MIN;
+
   [inputNode installTapOnBus:0
-    bufferSize:4096 
+    bufferSize:4096
     format:[inputNode outputFormatForBus:0]
-    block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) 
-    { 
-      // NSLog(@"Block tap!"); 
-      [self.recognitionRequest appendAudioPCMBuffer:buffer]; 
+    block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when)
+    {
+      [self.recognitionRequest appendAudioPCMBuffer:buffer];
       [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(true)];
-    } 
-  ]; 
 
-  [self.audioEngine prepare]; 
-  [self.audioEngine startAndReturnError:&outError]; 
+      UInt32 inNumberFrames = buffer.frameLength;
+      Float32 averagePower = 0;
 
-  NSLog(@"Error %@", outError); 
+      if (buffer.format.channelCount > 0) {
+        Float32* samples = (Float32*)buffer.floatChannelData[0];
+        Float32 averageValue = 0;
+
+        vDSP_meamgv((Float32*)samples, 1, &averageValue, inNumberFrames);
+
+        Float32 normalizedValue = (averageValue == 0) ? -100 : 20.0;
+        Float32 powerValue = normalizedValue * log10f(averageValue);
+
+        NSLog(@"%f", normalizedValue * log10f(averageValue));
+        averagePower = 1 - ((powerValue - POWER_MIN) / (POWER_MAX - POWER_MIN)) * POWER_SCALE_FACTOR;
+        averagePower = averagePower < 0 ? 0 : averagePower;
+        averagePower = averagePower > 1 ? 1 : averagePower;
+      }
+
+      [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceInputLevel" body:@(averagePower)];
+    }
+  ];
+
+  [self.audioEngine prepare];
+  [self.audioEngine startAndReturnError:&outError];
+
+  NSLog(@"Error %@", outError);
 }
 
 - (void)stop:(void (^)(NSString *))completionHandler
 {
-  self.completionHandler = completionHandler;
-
   if (self.audioEngine.isRunning) {
     [self.audioEngine stop];
+    [[self.audioEngine inputNode] removeTapOnBus:0];
 
-    if (self.recognitionRequest) {
+    if (self.recognitionRequest != nil) {
       [self.recognitionRequest endAudio];
     }
+
   }
-}
 
- - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition:(SFSpeechRecognitionResult *)result 
- { 
-   NSLog(@"speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition"); 
-   NSString *translatedString = [[[result bestTranscription] formattedString] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+  self.recognitionRequest = nil;
+  self.recognitionTask = nil;
 
-   self.completionHandler(translatedString);
-
-   if ([result isFinal]) { 
-     [self.audioEngine stop]; 
-     [[self.audioEngine inputNode] removeTapOnBus:0]; 
-
-     self.recognitionRequest = nil; 
-     self.recognitionTask = nil; 
-
-    [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceProcessing" body:@(false)];
-   } 
- } 
-
-- (void)speechRecognitionDidDetectSpeech:(SFSpeechRecognitionTask *)task
-{
-  NSLog(@"speechRecognitionDidDetectSpeech");
-  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(true)];
-}
-
-- (void)speechRecognitionTaskFinishedReadingAudio:(SFSpeechRecognitionTask *)task
-{
-  NSLog(@"speechRecognitionTaskFinishedReadingAudio");
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(false)];
+  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceProcessing" body:@(false)];
 }
 
-- (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishSuccessfully:(BOOL)successfully
+ - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition:(SFSpeechRecognitionResult *)result
 {
-  NSLog(@"speechRecognitionTask didFinishSuccessfully");
-  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceProcessing" body:@(false)];
+  NSLog(@"speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition");
+  NSString *translatedString = [[[result bestTranscription] formattedString] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+  if ([result isFinal]) {
+    [self stop:false];
+  }
+
+  self.completionHandler(translatedString);
 }
 
 - (void)speechRecognitionTaskWasCancelled:(SFSpeechRecognitionTask *)task
 {
   NSLog(@"speechRecognitionTaskWasCancelled");
+  [self stop:false];
+  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(false)];
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceProcessing" body:@(false)];
 }
 
