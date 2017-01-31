@@ -12,6 +12,6 @@
   "homepage": "https://github.com/trestrantham/react-native-speech-recognition",
   "description": "Speech recognition in React Native",
   "peerDependencies": {
-    "react-native": "^0.38"
+    "react-native": "^0.40"
   }
 }
