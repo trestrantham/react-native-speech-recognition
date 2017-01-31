@@ -71,11 +71,11 @@ static BOOL const logging = false;
   AVAudioInputNode *inputNode = [self.audioEngine inputNode];
 
   if (self.recognitionRequest == nil) {
-    logging && NSLog(@"Unable to created a SFSpeechAudioBufferRecognitionRequest object");
+    if (logging) NSLog(@"Unable to created a SFSpeechAudioBufferRecognitionRequest object");
   }
 
   if (inputNode == nil) {
-    logging && NSLog(@"Unable to created a inputNode object");
+    if (logging) NSLog(@"Unable to created a inputNode object");
   }
 
   self.recognitionRequest.taskHint = SFSpeechRecognitionTaskHintDictation;
@@ -123,7 +123,7 @@ static BOOL const logging = false;
   [self.audioEngine prepare];
   [self.audioEngine startAndReturnError:&outError];
 
-  logging && NSLog(@"Error %@", outError);
+  if (logging) NSLog(@"Error %@", outError);
 }
 
 - (void)stop:(void (^)(NSString *))completionHandler
@@ -148,7 +148,7 @@ static BOOL const logging = false;
 
  - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition:(SFSpeechRecognitionResult *)result
 {
-  logging && NSLog(@"speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition");
+  if (logging) NSLog(@"speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition");
   NSString *translatedString = [[[result bestTranscription] formattedString] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 
   if ([result isFinal]) {
@@ -160,13 +160,13 @@ static BOOL const logging = false;
 
 - (void)speechRecognitionTaskWasCancelled:(SFSpeechRecognitionTask *)task
 {
-  logging && NSLog(@"speechRecognitionTaskWasCancelled");
+  if (logging) NSLog(@"speechRecognitionTaskWasCancelled");
   [self stop:false];
 }
 
 - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didHypothesizeTranscription:(SFTranscription *)transcription
 {
-  logging && NSLog(@"speechRecognitionTask didHypothesizeTranscription");
+  if (logging) NSLog(@"speechRecognitionTask didHypothesizeTranscription");
   NSString *translatedString = [[transcription formattedString] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:translatedText" body:@{@"text": translatedString, @"state": @"hypothesized"}];
@@ -174,13 +174,13 @@ static BOOL const logging = false;
 
 - (void)speechRecognizer:(SFSpeechRecognizer *)speechRecognizer availabilityDidChange:(BOOL)available
 {
-  logging && NSLog(@"speechRecognizer availabilityDidChange");
+  if (logging) NSLog(@"speechRecognizer availabilityDidChange");
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceAvailable" body:@(available)];
 }
 
 - (void)triggerSpeechTimeout:(NSTimer *)timer
 {
-  logging && NSLog(@"triggerSpeechTimeout");
+  if (logging) NSLog(@"triggerSpeechTimeout");
   [self stop:false];
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceSpeechTimeout" body:@(true)];
 }
