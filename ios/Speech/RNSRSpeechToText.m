@@ -129,10 +129,14 @@ static BOOL const logging = false;
   [self.audioEngine startAndReturnError:&outError];
 
   if (logging) NSLog(@"Error %@", outError);
+
+  if (completionHandler) completionHandler(@"LISTEN finished");
 }
 
 - (void)stop:(void (^)(NSString *))completionHandler
 {
+  self.completionHandler = completionHandler;
+
   if (logging) NSLog(@"Invalidating speech timeout timer");
   [self.speechTimeoutTimer invalidate];
   self.speechTimeoutTimer = nil;
@@ -154,7 +158,9 @@ static BOOL const logging = false;
 
   if (logging) NSLog(@"Dispatching voiceListening=false");
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(false)];
+
   if (logging) NSLog(@"Calling completion handler");
+  if (completionHandler) completionHandler(@"STOP finished");
 }
 
  - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition:(SFSpeechRecognitionResult *)result
@@ -166,7 +172,7 @@ static BOOL const logging = false;
     [self stop:false];
   }
 
-  self.completionHandler(translatedString);
+  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:translatedText" body:@{@"text": translatedString, @"state": @"final"}];
 }
 
 - (void)speechRecognitionTaskWasCancelled:(SFSpeechRecognitionTask *)task
