@@ -61,11 +61,13 @@ static BOOL const logging = false;
 
   NSError *outError;
 
+  if (logging) NSLog(@"Setting up AVAudioEngine");
   AVAudioSession *audioSession = [AVAudioSession sharedInstance];
   [audioSession setCategory:AVAudioSessionCategoryRecord error:&outError];
   [audioSession setMode:AVAudioSessionModeMeasurement error:&outError];
   [audioSession setActive:true withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&outError];
 
+  if (logging) NSLog(@"Creating SFSpeechAudioBufferRecognitionRequest");
   self.recognitionRequest = [[SFSpeechAudioBufferRecognitionRequest alloc] init];
 
   AVAudioInputNode *inputNode = [self.audioEngine inputNode];
@@ -79,8 +81,10 @@ static BOOL const logging = false;
   }
 
   self.recognitionRequest.taskHint = SFSpeechRecognitionTaskHintDictation;
+  if (logging) NSLog(@"Creating recognition task");
   self.recognitionTask = [self.speechRecognizer recognitionTaskWithRequest:self.recognitionRequest delegate:self];
 
+  if (logging) NSLog(@"Installing tap");
   [inputNode installTapOnBus:0
     bufferSize:4096
     format:[inputNode outputFormatForBus:0]
@@ -120,6 +124,7 @@ static BOOL const logging = false;
     repeats: false
   ];
 
+  if (logging) NSLog(@"Preparing engine and starting");
   [self.audioEngine prepare];
   [self.audioEngine startAndReturnError:&outError];
 
@@ -128,22 +133,28 @@ static BOOL const logging = false;
 
 - (void)stop:(void (^)(NSString *))completionHandler
 {
+  if (logging) NSLog(@"Invalidating speech timeout timer");
   [self.speechTimeoutTimer invalidate];
   self.speechTimeoutTimer = nil;
 
   if (self.audioEngine.isRunning) {
+    if (logging) NSLog(@"Stopping audio engine");
     [self.audioEngine stop];
+    if (logging) NSLog(@"Removing audio engine tap");
     [[self.audioEngine inputNode] removeTapOnBus:0];
 
     if (self.recognitionRequest != nil) {
       [self.recognitionRequest endAudio];
     }
+    if (logging) NSLog(@"Ending audio on recognition request");
   }
 
   self.recognitionRequest = nil;
   self.recognitionTask = nil;
 
+  if (logging) NSLog(@"Dispatching voiceListening=false");
   [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(false)];
+  if (logging) NSLog(@"Calling completion handler");
 }
 
  - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition:(SFSpeechRecognitionResult *)result
