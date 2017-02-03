@@ -142,14 +142,14 @@ static BOOL const logging = false;
     [self.audioEngine stop];
     if (logging) NSLog(@"Removing audio engine tap");
     [[self.audioEngine inputNode] removeTapOnBus:0];
-
-    if (self.recognitionRequest != nil) {
-      [self.recognitionRequest endAudio];
-    }
-    if (logging) NSLog(@"Ending audio on recognition request");
   }
 
-  self.recognitionRequest = nil;
+  if (self.recognitionRequest != nil) {
+    if (logging) NSLog(@"Ending audio on recognition request");
+    [self.recognitionRequest endAudio];
+    self.recognitionRequest = nil;
+  }
+
   self.recognitionTask = nil;
 
   if (logging) NSLog(@"Dispatching voiceListening=false");
