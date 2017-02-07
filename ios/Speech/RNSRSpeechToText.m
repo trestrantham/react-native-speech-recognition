@@ -156,6 +156,7 @@ static BOOL const logging = false;
 
     [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceInputLevel" body:@(averagePower)];
   }
+}
 
  - (void)speechRecognitionTask:(SFSpeechRecognitionTask *)task didFinishRecognition:(SFSpeechRecognitionResult *)result
 {
