@@ -126,7 +126,7 @@ static BOOL const logging = false;
 
   if (logging) NSLog(@"Starting capture session");
   [self.captureSession startRunning];
-  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(true)];
+  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(YES)];
   if (logging) NSLog(@"Done starting capture session");
 }
 
@@ -137,7 +137,7 @@ static BOOL const logging = false;
   }
 
   if (logging) NSLog(@"Dispatching voiceListening=false");
-  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(false)];
+  [self.eventDispatcher sendAppEventWithName:@"RNSpeechRecognition:voiceListening" body:@(NO)];
 }
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection
